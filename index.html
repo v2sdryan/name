@@ -64,9 +64,9 @@ body{background-color:#111125;background-image:url("data:image/svg+xml,%3Csvg vi
     </div>
     <div class="glass-panel w-full rounded-2xl p-8 flex flex-col gap-6">
         <h2 class="text-lg font-serif font-bold text-center text-primary tracking-widest">請輸入你嘅名稱</h2>
-        <input type="text" id="player-name-input" placeholder="玩家暱稱" class="w-full bg-surfaceContainer border-none rounded-xl px-4 py-4 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-center font-medium shadow-inner">
+        <input type="text" id="player-name-input" placeholder="玩家暱稱（可留空）" class="w-full bg-surfaceContainer border-none rounded-xl px-4 py-4 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-center font-medium shadow-inner">
         <button id="btn-start" class="w-full gold-gradient text-surface font-bold text-lg py-4 rounded-full shadow-[0_0_20px_rgba(246,190,57,0.3)] hover:scale-[1.02] active:scale-95 transition-all">開始遊戲 →</button>
-        <p class="text-xs text-center text-white/40 tracking-wider">你嘅成績會記錄到排行榜</p>
+        <p class="text-xs text-center text-white/40 tracking-wider">可直接開始，留空會自動配名</p>
     </div>
 </div>
 
@@ -193,12 +193,12 @@ body{background-color:#111125;background-image:url("data:image/svg+xml,%3Csvg vi
 // ═══════════════════════════════════
 const GEMINI_API_KEY = "YOUR_GEMINI_API_KEY_HERE";
 const firebaseConfig = {
-    apiKey: "YOUR_FIREBASE_API_KEY",
-    authDomain: "YOUR_PROJECT.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
+    apiKey: "AIzaSyBkscf6-LSL0reA2XV3K0Bv1nOOe6zbVl4",
+    authDomain: "name-9fd82.firebaseapp.com",
+    projectId: "name-9fd82",
+    storageBucket: "name-9fd82.firebasestorage.app",
+    messagingSenderId: "55740705102",
+    appId: "1:55740705102:web:619952aadb54fee50c161f"
 };
 // ═══════════════════════════════════
 
@@ -248,6 +248,10 @@ let isOffline = false;
 let typeTimer = null;
 let unsubLeaderboard = null;
 
+function makeGuestName() {
+    return `訪客${Math.floor(1000 + Math.random() * 9000)}`;
+}
+
 function init() {
     try {
         if (firebaseConfig.apiKey !== "YOUR_FIREBASE_API_KEY") {
@@ -279,18 +283,26 @@ function toast(msg, type = 'info') {
 }
 
 async function login() {
-    const name = document.getElementById('player-name-input').value.trim();
-    if (!name) return toast("請輸入名稱先啦！", "warning");
+    const inputEl = document.getElementById('player-name-input');
+    const typedName = inputEl.value.trim();
+    const savedGuest = localStorage.getItem('bible_guess_guest_name');
+    const name = typedName || savedGuest || makeGuestName();
+
+    if (!typedName) {
+        inputEl.value = name;
+        localStorage.setItem('bible_guess_guest_name', name);
+    }
 
     state.name = name;
     localStorage.setItem('bible_guess_player', name);
     
     const btn = document.getElementById('btn-start');
+    const originalBtnHtml = btn.innerHTML;
     btn.innerHTML = '<span class="animate-pulse">連接中...</span>';
     btn.disabled = true;
 
-    if (!isOffline && db) {
-        try {
+    try {
+        if (!isOffline && db) {
             const ref = db.collection('players').doc(name);
             const doc = await ref.get();
             if (doc.exists) {
@@ -303,17 +315,27 @@ async function login() {
                 });
                 toast(`歡迎新玩家，${name}！`, "success");
             }
-        } catch (e) {
-            toast("網絡錯誤，轉為離線模式", "warning");
-            isOffline = true;
-        }
-    } else toast(`離線模式開始，歡迎 ${name}！`, "info");
+        } else toast(`離線模式開始，歡迎 ${name}！`, "info");
 
-    document.getElementById('display-player-name').innerText = state.name;
-    document.getElementById('player-avatar').innerText = state.name.charAt(0).toUpperCase();
-    document.getElementById('display-best-score').innerText = state.best;
-    
-    start();
+        document.getElementById('display-player-name').innerText = state.name;
+        document.getElementById('player-avatar').innerText = state.name.charAt(0).toUpperCase();
+        document.getElementById('display-best-score').innerText = state.best;
+        
+        start();
+    } catch (e) {
+        if (!isOffline) {
+            isOffline = true;
+            toast("網絡錯誤，轉為離線模式", "warning");
+            document.getElementById('display-player-name').innerText = state.name;
+            document.getElementById('player-avatar').innerText = state.name.charAt(0).toUpperCase();
+            document.getElementById('display-best-score').innerText = state.best;
+            start();
+            return;
+        }
+        btn.innerHTML = originalBtnHtml;
+        btn.disabled = false;
+        toast("開始遊戲失敗，請再試一次", "error");
+    }
 }
 
 async function saveRecord(card, pts, isSkip) {
