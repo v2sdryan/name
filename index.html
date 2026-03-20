@@ -207,8 +207,8 @@ body{background-color:#111125;background-image:url("data:image/svg+xml,%3Csvg vi
             </div>
             <div class="flex flex-col gap-2">
                 <label for="gemini-model-input" class="text-xs text-white/50 tracking-widest uppercase">Model</label>
-                <input type="text" id="gemini-model-input" value="gemini-2.5-flash" class="w-full bg-surfaceContainer border border-white/10 rounded-xl px-4 py-4 text-white focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all font-medium shadow-inner">
-                <p class="text-xs text-white/35 leading-relaxed">預設已用官方型號 `gemini-2.5-flash`。</p>
+                <input type="text" id="gemini-model-input" value="gemini-3.1-flash-lite-preview" class="w-full bg-surfaceContainer border border-white/10 rounded-xl px-4 py-4 text-white focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all font-medium shadow-inner">
+                <p class="text-xs text-white/35 leading-relaxed">預設已用 `gemini-3.1-flash-lite-preview`。</p>
             </div>
             <p id="settings-status" class="text-xs text-white/35 min-h-[18px]"></p>
         </div>
@@ -223,7 +223,7 @@ body{background-color:#111125;background-image:url("data:image/svg+xml,%3Csvg vi
 // 🔧 設定區域
 // ═══════════════════════════════════
 const GEMINI_API_KEY = "YOUR_GEMINI_API_KEY_HERE";
-const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
+const DEFAULT_GEMINI_MODEL = "gemini-3.1-flash-lite-preview";
 const firebaseConfig = {
     apiKey: "AIzaSyBkscf6-LSL0reA2XV3K0Bv1nOOe6zbVl4",
     authDomain: "name-9fd82.firebaseapp.com",
