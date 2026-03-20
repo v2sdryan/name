@@ -15,6 +15,7 @@ tailwind.config={theme:{extend:{colors:{surface:'#111125',surfaceLow:'#1a1a2e',s
 </script>
 <style>
 body{background-color:#111125;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");color:#e2e0fc;overflow-x:hidden;touch-action:manipulation;}
+input,button,textarea{touch-action:auto;}
 .glass-panel{background:rgba(30,30,50,0.6);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:0 8px 32px rgba(0,0,0,0.3);}
 .perspective-1000{perspective:1000px;}
 .card-inner{position:relative;width:100%;height:100%;transition:transform 0.8s cubic-bezier(0.175,0.885,0.32,1.275);transform-style:preserve-3d;}
@@ -64,9 +65,12 @@ body{background-color:#111125;background-image:url("data:image/svg+xml,%3Csvg vi
     </div>
     <div class="glass-panel w-full rounded-2xl p-8 flex flex-col gap-6">
         <h2 class="text-lg font-serif font-bold text-center text-primary tracking-widest">請輸入你嘅名稱</h2>
-        <input type="text" id="player-name-input" placeholder="玩家暱稱（可留空）" class="w-full bg-surfaceContainer border-none rounded-xl px-4 py-4 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-center font-medium shadow-inner">
-        <button id="btn-start" class="w-full gold-gradient text-surface font-bold text-lg py-4 rounded-full shadow-[0_0_20px_rgba(246,190,57,0.3)] hover:scale-[1.02] active:scale-95 transition-all">開始遊戲 →</button>
-        <p class="text-xs text-center text-white/40 tracking-wider">可直接開始，留空會自動配名</p>
+        <input type="text" id="player-name-input" placeholder="玩家暱稱（可留空）" autocomplete="off" spellcheck="false" autofocus class="w-full bg-surfaceContainer border-none rounded-xl px-4 py-4 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all text-center font-medium shadow-inner">
+        <div class="flex flex-col gap-3">
+            <button id="btn-start" class="w-full gold-gradient text-surface font-bold text-lg py-4 rounded-full shadow-[0_0_20px_rgba(246,190,57,0.3)] hover:scale-[1.02] active:scale-95 transition-all">開始遊戲 →</button>
+            <button id="btn-start-ai" class="w-full bg-primary/15 text-primary font-bold text-lg py-4 rounded-full border border-primary/30 hover:bg-primary/20 active:scale-95 transition-all">AI 新題開局 ✨</button>
+        </div>
+        <p class="text-xs text-center text-white/40 tracking-wider">可直接開始，留空會自動配名；亦可一開始就玩 AI 題</p>
     </div>
 </div>
 
@@ -218,6 +222,27 @@ body{background-color:#111125;background-image:url("data:image/svg+xml,%3Csvg vi
     </div>
 </div>
 
+<!-- 畫面五：完成 Modal -->
+<div id="screen-finish" class="fixed inset-0 bg-surface/80 backdrop-blur-xl z-50 hidden flex-col items-center justify-center p-6 fade-in">
+    <div class="glass-panel w-full max-w-md rounded-3xl overflow-hidden flex flex-col border border-white/10 shadow-2xl">
+        <div class="p-6 bg-surfaceContainer/50 border-b border-white/5 text-center">
+            <div class="text-xs text-primary tracking-[0.35em] uppercase mb-2">Round Complete</div>
+            <h2 class="text-2xl font-serif font-black text-white tracking-widest">今局完成</h2>
+        </div>
+        <div class="p-6 flex flex-col gap-4 bg-surfaceLow/30 text-center">
+            <p id="finish-message" class="text-sm text-white/70 leading-relaxed">你已完成今輪題目。</p>
+            <div class="rounded-2xl bg-surfaceContainer/70 border border-white/5 p-5">
+                <div class="text-xs text-white/45 tracking-[0.3em] uppercase mb-2">Score</div>
+                <div id="finish-score" class="font-cinzel text-4xl text-primary font-black">0</div>
+            </div>
+        </div>
+        <div class="p-5 border-t border-white/5 bg-surfaceContainer/50 flex flex-col gap-3">
+            <button id="btn-finish-generate" class="w-full py-3 rounded-xl gold-gradient text-surface font-bold tracking-widest">AI 新題 x2</button>
+            <button id="btn-finish-home" class="w-full py-3 rounded-xl bg-surfaceBright text-primary font-bold tracking-widest border border-primary/20">返回首頁</button>
+        </div>
+    </div>
+</div>
+
 <script>
 // ═══════════════════════════════════
 // 🔧 設定區域
@@ -273,7 +298,7 @@ const CARD_COLORS = {
 
 let state = {
     name: '', best: 0, score: 0, deck: [], idx: 0, guesses: 0, flipped: false, processing: false, hints: 0,
-    choices: [], aiCards: []
+    choices: [], aiCards: [], sessionMode: 'normal'
 };
 
 let db = null;
@@ -322,6 +347,48 @@ function saveSettings() {
     toast("Gemini 設定已儲存", "success");
 }
 
+function focusNameInput() {
+    const inputEl = document.getElementById('player-name-input');
+    if (!inputEl) return;
+    inputEl.disabled = false;
+    setTimeout(() => inputEl.focus(), 80);
+}
+
+function hideFinishScreen() {
+    document.getElementById('screen-finish').classList.add('hidden');
+    document.getElementById('screen-finish').classList.remove('flex');
+}
+
+function showFinishScreen() {
+    document.getElementById('finish-score').innerText = state.score;
+    document.getElementById('finish-message').innerText =
+        state.sessionMode === 'ai'
+            ? 'AI 題庫已經玩完，你可以即刻再生成兩題繼續。'
+            : '你已完成今輪題目，可以回首頁或者即刻加開兩題 AI 新題。';
+    document.getElementById('screen-finish').classList.remove('hidden');
+    document.getElementById('screen-finish').classList.add('flex');
+}
+
+function returnToLogin() {
+    hideFinishScreen();
+    document.getElementById('screen-game').classList.add('hidden');
+    document.getElementById('screen-login').classList.remove('hidden');
+    document.getElementById('btn-start').innerHTML = '開始遊戲 →';
+    document.getElementById('btn-start').disabled = false;
+    document.getElementById('btn-start-ai').innerHTML = 'AI 新題開局 ✨';
+    document.getElementById('btn-start-ai').disabled = false;
+    focusNameInput();
+}
+
+function setLoginButtonsDisabled(disabled, activeButtonId = null, activeText = null) {
+    const normalBtn = document.getElementById('btn-start');
+    const aiBtn = document.getElementById('btn-start-ai');
+    normalBtn.disabled = disabled;
+    aiBtn.disabled = disabled;
+    normalBtn.innerHTML = activeButtonId === 'btn-start' && activeText ? activeText : '開始遊戲 →';
+    aiBtn.innerHTML = activeButtonId === 'btn-start-ai' && activeText ? activeText : 'AI 新題開局 ✨';
+}
+
 function buildChoices(card) {
     const pool = [...CARDS, ...state.aiCards]
         .filter(item => item.id !== card.id && item.name_zh !== card.name_zh)
@@ -361,6 +428,28 @@ function parseGeminiJson(text) {
     return JSON.parse(cleaned);
 }
 
+function normalizeGeneratedCards(payload) {
+    const list = Array.isArray(payload) ? payload : Array.isArray(payload?.cards) ? payload.cards : [payload];
+    return list.map(rawCard => ({
+        ...rawCard,
+        id: normalizeCardId(rawCard.id || rawCard.name_en || rawCard.name_zh),
+        card_type: ['君王卡', '先知卡', '人物卡', '戰士卡'].includes(rawCard.card_type) ? rawCard.card_type : '人物卡',
+        card_color: ['gold', 'blue', 'cream', 'green', 'red'].includes(rawCard.card_color) ? rawCard.card_color : 'cream',
+        symbol: SYMBOLS[rawCard.symbol] ? rawCard.symbol : 'star'
+    })).filter(card => {
+        const required = ['name_zh', 'name_en', 'identity', 'relationship', 'achievement', 'note', 'hint_easy', 'hint_medium', 'hint_hard'];
+        return required.every(key => !!card[key]);
+    });
+}
+
+function mergeAiCards(cards) {
+    cards.forEach(card => {
+        if (!state.aiCards.some(item => item.id === card.id || item.name_zh === card.name_zh)) {
+            state.aiCards.push(card);
+        }
+    });
+}
+
 function normalizeCardId(value) {
     return String(value || '')
         .trim()
@@ -369,22 +458,24 @@ function normalizeCardId(value) {
         .replace(/^-+|-+$/g, '') || `ai-card-${Date.now()}`;
 }
 
-async function generateCardWithGemini() {
+async function generateCardsWithGemini(count = 1, buttonEl = null, loadingText = '生成中...') {
     const apiKey = getGeminiApiKey();
     if (!apiKey) {
         toast("請先到設定輸入 Gemini API key", "warning");
         openSettings();
-        return;
+        return [];
     }
 
-    const btn = document.getElementById('btn-generate-card');
-    const original = btn.innerHTML;
-    btn.disabled = true;
-    btn.innerHTML = '生成中...';
+    const btn = buttonEl || document.getElementById('btn-generate-card');
+    const original = btn ? btn.innerHTML : '';
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = loadingText;
+    }
 
     try {
-        const existing = [...new Set([...CARDS, ...state.aiCards].map(card => card.name_zh))].join('、');
-        const prompt = `請建立一張全新嘅聖經人物猜謎卡，使用繁體中文（香港口語），並且只輸出 JSON，不要 Markdown。\n請輸出以下欄位：id,name_zh,name_en,card_type,card_color,identity,relationship,achievement,note,symbol,hint_easy,hint_medium,hint_hard。\n規則：1. 唔可以重複以下人物：${existing} 2. card_type 只可以用：君王卡、先知卡、人物卡、戰士卡 3. card_color 只可以用：gold、blue、cream、green、red 4. symbol 只可以用：harp、shield、crown、staff、star、coat、lion、scroll、fish、ark、wheat 5. 三個 hint 都唔可以直接講出人物名稱。`;
+        const existing = [...new Set([...CARDS, ...state.aiCards, ...state.deck].map(card => card.name_zh))].join('、');
+        const prompt = `請建立 ${count} 張全新嘅聖經人物猜謎卡，使用繁體中文（香港口語），並且只輸出 JSON array，不要 Markdown，array 長度必須等於 ${count}。\n每個物件都要有以下欄位：id,name_zh,name_en,card_type,card_color,identity,relationship,achievement,note,symbol,hint_easy,hint_medium,hint_hard。\n規則：1. 唔可以重複以下人物：${existing} 2. card_type 只可以用：君王卡、先知卡、人物卡、戰士卡 3. card_color 只可以用：gold、blue、cream、green、red 4. symbol 只可以用：harp、shield、crown、staff、star、coat、lion、scroll、fish、ark、wheat 5. 三個 hint 都唔可以直接講出人物名稱。`;
         const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(getGeminiModel())}:generateContent?key=${apiKey}`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -401,26 +492,39 @@ async function generateCardWithGemini() {
         const data = await res.json();
         const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
         if (!text) throw new Error('Empty response');
-        const rawCard = parseGeminiJson(text);
-        const card = {
-            ...rawCard,
-            id: normalizeCardId(rawCard.id || rawCard.name_en || rawCard.name_zh),
-            card_type: ['君王卡', '先知卡', '人物卡', '戰士卡'].includes(rawCard.card_type) ? rawCard.card_type : '人物卡',
-            card_color: ['gold', 'blue', 'cream', 'green', 'red'].includes(rawCard.card_color) ? rawCard.card_color : 'cream',
-            symbol: SYMBOLS[rawCard.symbol] ? rawCard.symbol : 'star'
-        };
-        const required = ['name_zh', 'name_en', 'identity', 'relationship', 'achievement', 'note', 'hint_easy', 'hint_medium', 'hint_hard'];
-        if (required.some(key => !card[key])) throw new Error('Missing fields');
-
-        state.aiCards.push(card);
-        state.deck.push(card);
-        toast(`AI 新題已加入：${card.name_zh}`, "success");
+        const cards = normalizeGeneratedCards(parseGeminiJson(text));
+        if (!cards.length) throw new Error('Missing fields');
+        mergeAiCards(cards);
+        return cards;
     } catch (e) {
         toast("AI 新題生成失敗，請檢查 API key 或模型設定", "error");
+        return [];
     } finally {
-        btn.disabled = false;
-        btn.innerHTML = original;
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = original;
+        }
     }
+}
+
+async function generateCardWithGemini() {
+    if (state.processing || state.flipped) return;
+    const cards = await generateCardsWithGemini(1, document.getElementById('btn-generate-card'), '切換緊...');
+    if (!cards.length) return;
+    state.deck.splice(state.idx, 1, cards[0]);
+    toast(`已切換到 AI 新題：${cards[0].name_zh}`, "success");
+    load();
+}
+
+async function continueWithAiQuestions() {
+    const cards = await generateCardsWithGemini(2, document.getElementById('btn-finish-generate'), '生成緊...');
+    if (!cards.length) return;
+    hideFinishScreen();
+    state.sessionMode = 'ai';
+    state.deck = shuffle(cards);
+    state.idx = 0;
+    document.getElementById('current-score').innerText = state.score;
+    load();
 }
 
 function init() {
@@ -431,7 +535,8 @@ function init() {
         } else isOffline = true;
     } catch (e) { isOffline = true; }
 
-    document.getElementById('btn-start').onclick = login;
+    document.getElementById('btn-start').onclick = () => login('normal');
+    document.getElementById('btn-start-ai').onclick = () => login('ai');
     document.getElementById('player-name-input').onkeypress = e => e.key === 'Enter' && login();
     document.getElementById('btn-hint').onclick = hint;
     document.getElementById('btn-skip').onclick = skip;
@@ -442,6 +547,8 @@ function init() {
     document.getElementById('btn-close-leaderboard-bottom').onclick = hideLeaderboard;
     document.getElementById('btn-close-settings').onclick = closeSettings;
     document.getElementById('btn-save-settings').onclick = saveSettings;
+    document.getElementById('btn-finish-home').onclick = returnToLogin;
+    document.getElementById('btn-finish-generate').onclick = continueWithAiQuestions;
 
     const saved = localStorage.getItem('bible_guess_player');
     const inputEl = document.getElementById('player-name-input');
@@ -449,6 +556,7 @@ function init() {
     inputEl.addEventListener('focus', () => {
         if (/^訪客\d+$/.test(inputEl.value.trim())) inputEl.value = '';
     });
+    focusNameInput();
 }
 
 function toast(msg, type = 'info') {
@@ -459,7 +567,7 @@ function toast(msg, type = 'info') {
     setTimeout(() => el.classList.add('opacity-0', '-translate-y-4'), 3000);
 }
 
-async function login() {
+async function login(mode = 'normal') {
     const inputEl = document.getElementById('player-name-input');
     const typedName = inputEl.value.trim();
     const savedGuest = localStorage.getItem('bible_guess_guest_name');
@@ -473,10 +581,7 @@ async function login() {
     state.name = name;
     localStorage.setItem('bible_guess_player', name);
     
-    const btn = document.getElementById('btn-start');
-    const originalBtnHtml = btn.innerHTML;
-    btn.innerHTML = '<span class="animate-pulse">連接中...</span>';
-    btn.disabled = true;
+    setLoginButtonsDisabled(true, mode === 'ai' ? 'btn-start-ai' : 'btn-start', '<span class="animate-pulse">連接中...</span>');
 
     try {
         if (!isOffline && db) {
@@ -497,8 +602,18 @@ async function login() {
         document.getElementById('display-player-name').innerText = state.name;
         document.getElementById('player-avatar').innerText = state.name.charAt(0).toUpperCase();
         document.getElementById('display-best-score').innerText = state.best;
-        
-        start();
+
+        if (mode === 'ai') {
+            const cards = await generateCardsWithGemini(2, document.getElementById('btn-start-ai'), '生成 AI 題...');
+            if (!cards.length) {
+                setLoginButtonsDisabled(false);
+                return;
+            }
+            start('ai', cards);
+            return;
+        }
+
+        start('normal');
     } catch (e) {
         if (!isOffline) {
             isOffline = true;
@@ -506,11 +621,19 @@ async function login() {
             document.getElementById('display-player-name').innerText = state.name;
             document.getElementById('player-avatar').innerText = state.name.charAt(0).toUpperCase();
             document.getElementById('display-best-score').innerText = state.best;
-            start();
+            if (mode === 'ai') {
+                const cards = await generateCardsWithGemini(2, document.getElementById('btn-start-ai'), '生成 AI 題...');
+                if (!cards.length) {
+                    setLoginButtonsDisabled(false);
+                    return;
+                }
+                start('ai', cards);
+                return;
+            }
+            start('normal');
             return;
         }
-        btn.innerHTML = originalBtnHtml;
-        btn.disabled = false;
+        setLoginButtonsDisabled(false);
         toast("開始遊戲失敗，請再試一次", "error");
     }
 }
@@ -546,10 +669,12 @@ async function saveRecord(card, pts, isSkip) {
     } catch (e) {}
 }
 
-function start() {
+function start(mode = 'normal', deck = null) {
+    hideFinishScreen();
     document.getElementById('screen-login').classList.add('hidden');
     document.getElementById('screen-game').classList.remove('hidden');
-    state.deck = shuffle([...CARDS, ...state.aiCards]);
+    state.sessionMode = mode;
+    state.deck = deck ? shuffle(deck) : shuffle(CARDS);
     state.idx = 0; state.score = 0;
     document.getElementById('current-score').innerText = state.score;
     load();
@@ -557,13 +682,8 @@ function start() {
 
 function load() {
     if (state.idx >= state.deck.length) {
-        toast("恭喜！你已經玩完所有卡牌！", "success");
-        setTimeout(() => {
-            document.getElementById('screen-game').classList.add('hidden');
-            document.getElementById('screen-login').classList.remove('hidden');
-            document.getElementById('btn-start').innerHTML = '再玩一次 →';
-            document.getElementById('btn-start').disabled = false;
-        }, 3000);
+        toast("今局完成！", "success");
+        showFinishScreen();
         return;
     }
 
