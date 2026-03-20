@@ -147,14 +147,20 @@ body{background-color:#111125;background-image:url("data:image/svg+xml,%3Csvg vi
             <div id="hint-area" class="min-h-[60px] flex items-center justify-center px-2 bg-surfaceLow/50 rounded-xl p-3 border border-white/5">
                 <p id="hint-text" class="text-sm text-primary italic text-center font-medium leading-relaxed tracking-wide"></p>
             </div>
-            <input type="text" id="guess-input" placeholder="輸入人物姓名..." class="w-full bg-surfaceContainer border-none rounded-xl px-4 py-4 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all text-center font-bold text-lg shadow-inner">
+            <div class="bg-surfaceContainer/70 rounded-2xl p-4 border border-white/5">
+                <div class="text-[10px] text-white/45 tracking-[0.3em] text-center uppercase mb-3">4 Choices</div>
+                <div id="choice-grid" class="grid grid-cols-2 gap-3"></div>
+            </div>
             <div class="flex gap-3">
-                <button id="btn-guess" class="flex-[3] gold-gradient text-surface font-bold py-4 rounded-xl shadow-[0_4px_15px_rgba(246,190,57,0.2)] active:scale-95 transition-transform text-lg tracking-widest">確認</button>
-                <button id="btn-hint" class="flex-[2] bg-surfaceBright text-primary font-bold py-4 rounded-xl active:scale-95 transition-transform flex items-center justify-center gap-2 border border-primary/20 hover:bg-surfaceBright/80">提示 💡</button>
+                <button id="btn-hint" class="flex-1 bg-surfaceBright text-primary font-bold py-4 rounded-xl active:scale-95 transition-transform flex items-center justify-center gap-2 border border-primary/20 hover:bg-surfaceBright/80">提示 💡</button>
+                <button id="btn-generate-card" class="flex-1 bg-primary/15 text-primary font-bold py-4 rounded-xl active:scale-95 transition-transform border border-primary/30 hover:bg-primary/20">AI 新題 ✨</button>
             </div>
             <div class="flex justify-between items-center mt-1 px-2">
                 <button id="btn-skip" class="text-xs text-white/40 hover:text-white transition-colors uppercase tracking-widest font-medium">跳過呢張 ⏭</button>
-                <button id="btn-show-leaderboard" class="text-xs text-tertiary hover:text-primary transition-colors uppercase tracking-widest font-medium flex items-center gap-1">🏆 排行榜</button>
+                <div class="flex items-center gap-3">
+                    <button id="btn-open-settings" class="text-xs text-white/50 hover:text-primary transition-colors uppercase tracking-widest font-medium">設定 ⚙</button>
+                    <button id="btn-show-leaderboard" class="text-xs text-tertiary hover:text-primary transition-colors uppercase tracking-widest font-medium flex items-center gap-1">🏆 排行榜</button>
+                </div>
             </div>
         </div>
     </footer>
@@ -187,11 +193,37 @@ body{background-color:#111125;background-image:url("data:image/svg+xml,%3Csvg vi
     </div>
 </div>
 
+<!-- 畫面四：設定 Modal -->
+<div id="screen-settings" class="fixed inset-0 bg-surface/80 backdrop-blur-xl z-50 hidden flex-col items-center justify-center p-6 fade-in">
+    <div class="glass-panel w-full max-w-md rounded-3xl overflow-hidden flex flex-col border border-white/10 shadow-2xl">
+        <div class="p-6 border-b border-white/5 flex justify-between items-center bg-surfaceContainer/50">
+            <h2 class="text-xl font-serif font-black text-primary tracking-widest">Gemini 設定</h2>
+            <button id="btn-close-settings" class="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center text-white/50 hover:text-white hover:bg-white/10 transition-colors">✕</button>
+        </div>
+        <div class="p-6 flex flex-col gap-5 bg-surfaceLow/30">
+            <div class="flex flex-col gap-2">
+                <label for="gemini-api-key-input" class="text-xs text-white/50 tracking-widest uppercase">API Key</label>
+                <input type="password" id="gemini-api-key-input" placeholder="貼上 Gemini API key" class="w-full bg-surfaceContainer border border-white/10 rounded-xl px-4 py-4 text-white placeholder-white/30 focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all font-medium shadow-inner">
+            </div>
+            <div class="flex flex-col gap-2">
+                <label for="gemini-model-input" class="text-xs text-white/50 tracking-widest uppercase">Model</label>
+                <input type="text" id="gemini-model-input" value="gemini-2.5-flash" class="w-full bg-surfaceContainer border border-white/10 rounded-xl px-4 py-4 text-white focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all font-medium shadow-inner">
+                <p class="text-xs text-white/35 leading-relaxed">預設已用官方型號 `gemini-2.5-flash`。</p>
+            </div>
+            <p id="settings-status" class="text-xs text-white/35 min-h-[18px]"></p>
+        </div>
+        <div class="p-5 border-t border-white/5 bg-surfaceContainer/50 text-center">
+            <button id="btn-save-settings" class="w-full py-3 rounded-xl gold-gradient text-surface font-bold tracking-widest">儲存設定</button>
+        </div>
+    </div>
+</div>
+
 <script>
 // ═══════════════════════════════════
 // 🔧 設定區域
 // ═══════════════════════════════════
 const GEMINI_API_KEY = "YOUR_GEMINI_API_KEY_HERE";
+const DEFAULT_GEMINI_MODEL = "gemini-2.5-flash";
 const firebaseConfig = {
     apiKey: "AIzaSyBkscf6-LSL0reA2XV3K0Bv1nOOe6zbVl4",
     authDomain: "name-9fd82.firebaseapp.com",
@@ -240,7 +272,8 @@ const CARD_COLORS = {
 };
 
 let state = {
-    name: '', best: 0, score: 0, deck: [], idx: 0, guesses: 0, flipped: false, processing: false, hints: 0
+    name: '', best: 0, score: 0, deck: [], idx: 0, guesses: 0, flipped: false, processing: false, hints: 0,
+    choices: [], aiCards: []
 };
 
 let db = null;
@@ -250,6 +283,144 @@ let unsubLeaderboard = null;
 
 function makeGuestName() {
     return `訪客${Math.floor(1000 + Math.random() * 9000)}`;
+}
+
+function shuffle(arr) {
+    return [...arr].sort(() => Math.random() - 0.5);
+}
+
+function getGeminiApiKey() {
+    const saved = localStorage.getItem('bible_guess_gemini_api_key');
+    if (saved) return saved;
+    return GEMINI_API_KEY && GEMINI_API_KEY !== "YOUR_GEMINI_API_KEY_HERE" ? GEMINI_API_KEY : '';
+}
+
+function getGeminiModel() {
+    return localStorage.getItem('bible_guess_gemini_model') || DEFAULT_GEMINI_MODEL;
+}
+
+function openSettings() {
+    document.getElementById('gemini-api-key-input').value = getGeminiApiKey();
+    document.getElementById('gemini-model-input').value = getGeminiModel();
+    document.getElementById('settings-status').innerText = getGeminiApiKey() ? '已載入已儲存 API key。' : '未設定 API key，AI 新題暫時不可用。';
+    document.getElementById('screen-settings').classList.remove('hidden');
+    document.getElementById('screen-settings').classList.add('flex');
+}
+
+function closeSettings() {
+    document.getElementById('screen-settings').classList.add('hidden');
+    document.getElementById('screen-settings').classList.remove('flex');
+}
+
+function saveSettings() {
+    const apiKey = document.getElementById('gemini-api-key-input').value.trim();
+    const model = document.getElementById('gemini-model-input').value.trim() || DEFAULT_GEMINI_MODEL;
+    if (apiKey) localStorage.setItem('bible_guess_gemini_api_key', apiKey);
+    else localStorage.removeItem('bible_guess_gemini_api_key');
+    localStorage.setItem('bible_guess_gemini_model', model);
+    document.getElementById('settings-status').innerText = '設定已儲存。';
+    toast("Gemini 設定已儲存", "success");
+}
+
+function buildChoices(card) {
+    const pool = [...CARDS, ...state.aiCards]
+        .filter(item => item.id !== card.id && item.name_zh !== card.name_zh)
+        .map(item => item.name_zh);
+    const distractors = [...new Set(shuffle(pool))].slice(0, 3);
+    return shuffle([card.name_zh, ...distractors]);
+}
+
+function renderChoices() {
+    const grid = document.getElementById('choice-grid');
+    const card = state.deck[state.idx];
+    state.choices = buildChoices(card);
+    grid.innerHTML = state.choices.map((choice, idx) => `
+        <button data-choice-index="${idx}" class="choice-btn min-h-[88px] rounded-2xl bg-surfaceContainer border border-white/10 text-white font-bold text-lg px-3 py-4 leading-tight shadow-inner hover:border-primary/40 hover:bg-surfaceBright/80 transition-all active:scale-[0.98]">
+            ${choice}
+        </button>
+    `).join('');
+
+    [...grid.querySelectorAll('.choice-btn')].forEach((btn, idx) => {
+        btn.onclick = () => guess(state.choices[idx], btn);
+    });
+}
+
+function setChoiceButtonsDisabled(disabled) {
+    [...document.querySelectorAll('.choice-btn')].forEach(btn => {
+        btn.disabled = disabled;
+        btn.classList.toggle('opacity-60', disabled);
+        btn.classList.toggle('cursor-not-allowed', disabled);
+    });
+}
+
+function parseGeminiJson(text) {
+    const cleaned = text.trim()
+        .replace(/^```json\s*/i, '')
+        .replace(/^```\s*/i, '')
+        .replace(/\s*```$/i, '');
+    return JSON.parse(cleaned);
+}
+
+function normalizeCardId(value) {
+    return String(value || '')
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '') || `ai-card-${Date.now()}`;
+}
+
+async function generateCardWithGemini() {
+    const apiKey = getGeminiApiKey();
+    if (!apiKey) {
+        toast("請先到設定輸入 Gemini API key", "warning");
+        openSettings();
+        return;
+    }
+
+    const btn = document.getElementById('btn-generate-card');
+    const original = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '生成中...';
+
+    try {
+        const existing = [...new Set([...CARDS, ...state.aiCards].map(card => card.name_zh))].join('、');
+        const prompt = `請建立一張全新嘅聖經人物猜謎卡，使用繁體中文（香港口語），並且只輸出 JSON，不要 Markdown。\n請輸出以下欄位：id,name_zh,name_en,card_type,card_color,identity,relationship,achievement,note,symbol,hint_easy,hint_medium,hint_hard。\n規則：1. 唔可以重複以下人物：${existing} 2. card_type 只可以用：君王卡、先知卡、人物卡、戰士卡 3. card_color 只可以用：gold、blue、cream、green、red 4. symbol 只可以用：harp、shield、crown、staff、star、coat、lion、scroll、fish、ark、wheat 5. 三個 hint 都唔可以直接講出人物名稱。`;
+        const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(getGeminiModel())}:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ parts: [{ text: prompt }] }],
+                generationConfig: {
+                    temperature: 0.9,
+                    maxOutputTokens: 500,
+                    responseMimeType: 'application/json'
+                }
+            })
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+        const text = data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!text) throw new Error('Empty response');
+        const rawCard = parseGeminiJson(text);
+        const card = {
+            ...rawCard,
+            id: normalizeCardId(rawCard.id || rawCard.name_en || rawCard.name_zh),
+            card_type: ['君王卡', '先知卡', '人物卡', '戰士卡'].includes(rawCard.card_type) ? rawCard.card_type : '人物卡',
+            card_color: ['gold', 'blue', 'cream', 'green', 'red'].includes(rawCard.card_color) ? rawCard.card_color : 'cream',
+            symbol: SYMBOLS[rawCard.symbol] ? rawCard.symbol : 'star'
+        };
+        const required = ['name_zh', 'name_en', 'identity', 'relationship', 'achievement', 'note', 'hint_easy', 'hint_medium', 'hint_hard'];
+        if (required.some(key => !card[key])) throw new Error('Missing fields');
+
+        state.aiCards.push(card);
+        state.deck.push(card);
+        toast(`AI 新題已加入：${card.name_zh}`, "success");
+    } catch (e) {
+        toast("AI 新題生成失敗，請檢查 API key 或模型設定", "error");
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = original;
+    }
 }
 
 function init() {
@@ -262,16 +433,22 @@ function init() {
 
     document.getElementById('btn-start').onclick = login;
     document.getElementById('player-name-input').onkeypress = e => e.key === 'Enter' && login();
-    document.getElementById('btn-guess').onclick = guess;
-    document.getElementById('guess-input').onkeypress = e => e.key === 'Enter' && guess();
     document.getElementById('btn-hint').onclick = hint;
     document.getElementById('btn-skip').onclick = skip;
+    document.getElementById('btn-generate-card').onclick = generateCardWithGemini;
+    document.getElementById('btn-open-settings').onclick = openSettings;
     document.getElementById('btn-show-leaderboard').onclick = showLeaderboard;
     document.getElementById('btn-close-leaderboard').onclick = hideLeaderboard;
     document.getElementById('btn-close-leaderboard-bottom').onclick = hideLeaderboard;
+    document.getElementById('btn-close-settings').onclick = closeSettings;
+    document.getElementById('btn-save-settings').onclick = saveSettings;
 
     const saved = localStorage.getItem('bible_guess_player');
-    if (saved) document.getElementById('player-name-input').value = saved;
+    const inputEl = document.getElementById('player-name-input');
+    if (saved && !/^訪客\d+$/.test(saved)) inputEl.value = saved;
+    inputEl.addEventListener('focus', () => {
+        if (/^訪客\d+$/.test(inputEl.value.trim())) inputEl.value = '';
+    });
 }
 
 function toast(msg, type = 'info') {
@@ -372,7 +549,7 @@ async function saveRecord(card, pts, isSkip) {
 function start() {
     document.getElementById('screen-login').classList.add('hidden');
     document.getElementById('screen-game').classList.remove('hidden');
-    state.deck = [...CARDS].sort(() => Math.random() - 0.5);
+    state.deck = shuffle([...CARDS, ...state.aiCards]);
     state.idx = 0; state.score = 0;
     document.getElementById('current-score').innerText = state.score;
     load();
@@ -394,11 +571,9 @@ function load() {
     state.guesses = 0; state.hints = 0; state.flipped = false; state.processing = false;
 
     document.getElementById('card-inner').classList.remove('card-flipped');
-    document.getElementById('guess-input').value = '';
-    document.getElementById('guess-input').disabled = false;
-    document.getElementById('btn-guess').disabled = false;
     document.getElementById('btn-hint').disabled = false;
     document.getElementById('btn-skip').disabled = false;
+    document.getElementById('btn-generate-card').disabled = false;
     
     if(typeTimer) clearTimeout(typeTimer);
     document.getElementById('hint-text').innerHTML = '準備好就開始估啦！';
@@ -419,21 +594,24 @@ function load() {
     document.getElementById('answer-name-en').innerText = card.name_en;
     document.getElementById('answer-note').innerText = card.note;
     document.getElementById('card-symbol-back').innerHTML = SYMBOLS[card.symbol] || SYMBOLS.star;
+    renderChoices();
 }
 
-function guess() {
+function guess(input, btnEl) {
     if (state.processing || state.flipped) return;
-    const input = document.getElementById('guess-input').value.trim().toLowerCase();
     if (!input) return;
 
     const card = state.deck[state.idx];
-    const isCorrect = input === card.name_zh || input === card.name_en.toLowerCase();
+    const normalizedInput = String(input).trim().toLowerCase();
+    const isCorrect = normalizedInput === card.name_zh.toLowerCase() || normalizedInput === card.name_en.toLowerCase();
     state.processing = true;
 
     if (isCorrect) {
         let pts = state.guesses === 0 ? 100 : state.guesses === 1 ? 60 : 30;
         state.score += pts;
         document.getElementById('current-score').innerText = state.score;
+        if (btnEl) btnEl.className = "choice-btn min-h-[88px] rounded-2xl border border-emerald-300 bg-emerald-500/20 text-emerald-100 font-bold text-lg px-3 py-4 leading-tight shadow-inner";
+        setChoiceButtonsDisabled(true);
         toast(`答對啦！+${pts}分`, "success");
         flip(true);
         particles();
@@ -441,6 +619,10 @@ function guess() {
         setTimeout(() => { state.idx++; load(); }, 3500);
     } else {
         state.guesses++;
+        if (btnEl) {
+            btnEl.className = "choice-btn min-h-[88px] rounded-2xl border border-red-300 bg-red-500/20 text-red-100 font-bold text-lg px-3 py-4 leading-tight shadow-inner opacity-70 cursor-not-allowed";
+            btnEl.disabled = true;
+        }
         document.getElementById('tries-indicator').children[state.guesses - 1].className = "w-2.5 h-2.5 rounded-full bg-white/20 transition-all duration-300";
         const c = document.getElementById('card-container');
         c.classList.remove('animate-float'); c.classList.add('animate-shake');
@@ -448,14 +630,12 @@ function guess() {
 
         if (state.guesses >= 3) {
             toast("機會用盡啦！", "error");
-            document.getElementById('guess-input').disabled = true;
+            setChoiceButtonsDisabled(true);
             flip(false);
             saveRecord(card, 0, false);
             setTimeout(() => { state.idx++; load(); }, 4000);
         } else {
             toast(`唔係呢個人，仲有 ${3 - state.guesses} 次機會！`, "warning");
-            document.getElementById('guess-input').value = '';
-            document.getElementById('guess-input').focus();
         }
     }
 }
@@ -472,10 +652,10 @@ function skip() {
 function flip(success) {
     state.flipped = true;
     document.getElementById('card-inner').classList.add('card-flipped');
-    document.getElementById('guess-input').disabled = true;
-    document.getElementById('btn-guess').disabled = true;
+    setChoiceButtonsDisabled(true);
     document.getElementById('btn-hint').disabled = true;
     document.getElementById('btn-skip').disabled = true;
+    document.getElementById('btn-generate-card').disabled = true;
     if (!success) document.getElementById('card-back').classList.add('brightness-75');
     else document.getElementById('card-back').classList.remove('brightness-75');
 }
@@ -519,12 +699,13 @@ async function hint() {
     else if (state.hints === 3) {
         document.getElementById('btn-hint').disabled = true;
         el.innerHTML = '<span class="animate-pulse">祈求神諭中...</span>';
-        if (GEMINI_API_KEY === "YOUR_GEMINI_API_KEY_HERE" || !GEMINI_API_KEY) {
+        const apiKey = getGeminiApiKey();
+        if (!apiKey) {
             type(el, `💡 終極提示：${card.hint_hard}`); return;
         }
         try {
             const prompt = `你係一個聖經知識遊戲嘅提示生成器。請用繁體中文（香港口語）為以下聖經人物生成一個謎語提示。提示必須：1）唔可以直接說出人物嘅名字；2）長度係20-40個字；3）描述一個佢生命中嘅獨特事件；4）用生動有趣嘅方式表達。\n\n人物資料：\n姓名：${card.name_zh}\n身份：${card.identity}\n成就：${card.achievement}\n\n請直接輸出提示，唔需要任何前言或解釋。`;
-            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${GEMINI_API_KEY}`, {
+            const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(getGeminiModel())}:generateContent?key=${apiKey}`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }], generationConfig: { temperature: 0.7, maxOutputTokens: 100 } })
             });
