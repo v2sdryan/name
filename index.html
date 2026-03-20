@@ -18,22 +18,42 @@ body{background-color:#111125;background-image:url("data:image/svg+xml,%3Csvg vi
 input,button,textarea{touch-action:auto;}
 .screen-fit{height:100svh;overflow:hidden;}
 .game-header{padding:clamp(0.6rem,1.2vh,0.85rem) 0.9rem;}
-.game-main{padding:0 0.85rem;}
-.game-card-wrap{width:min(46vw,224px);height:min(64.4vw,322px);}
-.game-footer{padding:0 0.85rem 0.7rem;}
-.game-panel{padding:0.8rem;gap:0.65rem;}
-.choice-btn{min-height:58px;font-size:0.95rem;padding:0.7rem;}
+.game-main{padding:0.1rem 0.85rem 0;}
+.game-card-wrap{width:min(54vw,260px);height:min(75.6vw,364px);}
+.game-footer{padding:0 0.85rem 0.55rem;}
+.game-panel{padding:0.7rem;gap:0.55rem;}
+.choice-btn{min-height:44px;font-size:0.88rem;padding:0.45rem 0.55rem;}
+.game-card-wrap #card-top-bar{height:2rem;font-size:0.65rem;padding-left:0.75rem;padding-right:0.75rem;}
+.game-card-wrap #card-symbol{width:3.1rem;height:3.1rem;}
+.game-card-wrap #card-front .p-4{padding:0.7rem;}
+.game-card-wrap #card-front .text-2xl{font-size:1.35rem;line-height:1.7rem;}
+.game-card-wrap #card-front .text-sm{font-size:0.84rem;line-height:1.2rem;}
+.game-card-wrap #card-front .text-xs{font-size:0.72rem;line-height:1rem;}
+.game-card-wrap #card-back .p-8{padding:1.2rem;}
+.game-card-wrap #answer-name-zh{font-size:2rem;line-height:2.2rem;margin-bottom:0.3rem;}
+.game-card-wrap #answer-name-en{font-size:0.95rem;line-height:1.2rem;margin-bottom:1rem;}
+.game-card-wrap #answer-note{font-size:0.78rem;line-height:1.2rem;}
 .login-topbar{width:100%;display:flex;justify-content:flex-end;margin-bottom:0.75rem;}
 @media (max-height: 780px){
-  .game-card-wrap{width:min(42vw,198px);height:min(58.8vw,285px);}
-  .game-panel{padding:0.7rem;gap:0.55rem;}
-  .choice-btn{min-height:52px;font-size:0.88rem;padding:0.6rem;}
-  #hint-area{min-height:42px;padding:0.6rem;}
-  #hint-text{font-size:0.76rem;}
-  #tries-indicator{margin-bottom:0.55rem;}
+  .game-card-wrap{width:min(50vw,232px);height:min(70vw,332px);}
+  .game-panel{padding:0.58rem;gap:0.45rem;}
+  .choice-btn{min-height:40px;font-size:0.8rem;padding:0.35rem 0.45rem;}
+  #hint-area{min-height:38px;padding:0.45rem 0.55rem;}
+  #hint-text{font-size:0.72rem;line-height:1rem;}
+  #tries-indicator{margin-bottom:0.45rem;}
+  .game-card-wrap #card-top-bar{height:1.8rem;font-size:0.58rem;}
+  .game-card-wrap #card-symbol{width:2.6rem;height:2.6rem;}
+  .game-card-wrap #card-front .p-4{padding:0.55rem;}
+  .game-card-wrap #card-front .text-2xl{font-size:1.1rem;line-height:1.4rem;}
+  .game-card-wrap #card-front .text-sm{font-size:0.76rem;line-height:1rem;}
+  .game-card-wrap #card-front .text-xs{font-size:0.66rem;line-height:0.9rem;}
+  .game-card-wrap #card-back .p-8{padding:0.9rem;}
+  .game-card-wrap #answer-name-zh{font-size:1.6rem;line-height:1.8rem;}
+  .game-card-wrap #answer-name-en{font-size:0.82rem;line-height:1rem;margin-bottom:0.7rem;}
+  .game-card-wrap #answer-note{font-size:0.7rem;line-height:1rem;}
 }
 @media (min-width: 768px){
-  .game-card-wrap{width:min(24vw,250px);height:min(33.6vw,360px);}
+  .game-card-wrap{width:min(28vw,290px);height:min(39.2vw,408px);}
 }
 .glass-panel{background:rgba(30,30,50,0.6);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);box-shadow:0 8px 32px rgba(0,0,0,0.3);}
 .perspective-1000{perspective:1000px;}
@@ -173,13 +193,13 @@ input,button,textarea{touch-action:auto;}
             <div id="hint-area" class="min-h-[60px] flex items-center justify-center px-2 bg-surfaceLow/50 rounded-xl p-3 border border-white/5">
                 <p id="hint-text" class="text-sm text-primary italic text-center font-medium leading-relaxed tracking-wide"></p>
             </div>
-            <div class="bg-surfaceContainer/70 rounded-2xl p-4 border border-white/5">
-                <div class="text-[10px] text-white/45 tracking-[0.3em] text-center uppercase mb-3">4 Choices</div>
-                <div id="choice-grid" class="grid grid-cols-2 gap-3"></div>
+            <div class="bg-surfaceContainer/70 rounded-2xl p-2.5 border border-white/5">
+                <div class="text-[10px] text-white/45 tracking-[0.3em] text-center uppercase mb-2">4 Choices</div>
+                <div id="choice-grid" class="grid grid-cols-2 gap-2"></div>
             </div>
             <div class="flex gap-3">
-                <button id="btn-hint" class="flex-1 bg-surfaceBright text-primary font-bold py-4 rounded-xl active:scale-95 transition-transform flex items-center justify-center gap-2 border border-primary/20 hover:bg-surfaceBright/80">提示 💡</button>
-                <button id="btn-generate-card" class="flex-1 bg-primary/15 text-primary font-bold py-4 rounded-xl active:scale-95 transition-transform border border-primary/30 hover:bg-primary/20">AI 新題 ✨</button>
+                <button id="btn-hint" class="flex-1 bg-surfaceBright text-primary font-bold py-2.5 rounded-xl active:scale-95 transition-transform flex items-center justify-center gap-2 border border-primary/20 hover:bg-surfaceBright/80">提示 💡</button>
+                <button id="btn-generate-card" class="flex-1 bg-primary/15 text-primary font-bold py-2.5 rounded-xl active:scale-95 transition-transform border border-primary/30 hover:bg-primary/20">AI 新題 ✨</button>
             </div>
             <div class="flex justify-between items-center mt-1 px-2">
                 <button id="btn-skip" class="text-xs text-white/40 hover:text-white transition-colors uppercase tracking-widest font-medium">跳過呢張 ⏭</button>
@@ -444,7 +464,7 @@ function renderChoices() {
     const card = state.deck[state.idx];
     state.choices = buildChoices(card);
     grid.innerHTML = state.choices.map((choice, idx) => `
-        <button data-choice-index="${idx}" class="choice-btn min-h-[88px] rounded-2xl bg-surfaceContainer border border-white/10 text-white font-bold text-lg px-3 py-4 leading-tight shadow-inner hover:border-primary/40 hover:bg-surfaceBright/80 transition-all active:scale-[0.98]">
+        <button data-choice-index="${idx}" class="choice-btn rounded-2xl bg-surfaceContainer border border-white/10 text-white font-bold text-base px-3 py-3 leading-tight shadow-inner hover:border-primary/40 hover:bg-surfaceBright/80 transition-all active:scale-[0.98]">
             ${choice}
         </button>
     `).join('');
@@ -763,7 +783,7 @@ function guess(input, btnEl) {
         let pts = state.guesses === 0 ? 100 : state.guesses === 1 ? 60 : 30;
         state.score += pts;
         document.getElementById('current-score').innerText = state.score;
-        if (btnEl) btnEl.className = "choice-btn min-h-[88px] rounded-2xl border border-emerald-300 bg-emerald-500/20 text-emerald-100 font-bold text-lg px-3 py-4 leading-tight shadow-inner";
+        if (btnEl) btnEl.className = "choice-btn rounded-2xl border border-emerald-300 bg-emerald-500/20 text-emerald-100 font-bold text-base px-3 py-3 leading-tight shadow-inner";
         setChoiceButtonsDisabled(true);
         toast(`答對啦！+${pts}分`, "success");
         flip(true);
@@ -773,7 +793,7 @@ function guess(input, btnEl) {
     } else {
         state.guesses++;
         if (btnEl) {
-            btnEl.className = "choice-btn min-h-[88px] rounded-2xl border border-red-300 bg-red-500/20 text-red-100 font-bold text-lg px-3 py-4 leading-tight shadow-inner opacity-70 cursor-not-allowed";
+            btnEl.className = "choice-btn rounded-2xl border border-red-300 bg-red-500/20 text-red-100 font-bold text-base px-3 py-3 leading-tight shadow-inner opacity-70 cursor-not-allowed";
             btnEl.disabled = true;
         }
         document.getElementById('tries-indicator').children[state.guesses - 1].className = "w-2.5 h-2.5 rounded-full bg-white/20 transition-all duration-300";
